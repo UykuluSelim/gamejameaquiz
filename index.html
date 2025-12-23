@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilim ve Sanat Yarışması</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div class="logo-container">
+            <img src="media/logo.png" alt="Logo" class="main-logo-splash">
+        </div>
+        <div class="loading-bar-container">
+            <div class="loading-bar"></div>
+        </div>
+        <p class="system-msg">SİSTEM BAŞLATILIYOR...</p>
+    </div>
+    
+    <div id="milestone-overlay" class="hide">
+        <div class="milestone-content">
+            <img id="milestone-image" src="" alt="Başarı" class="milestone-img">
+            <h2 id="milestone-text">BARAJ GEÇİLDİ!</h2>
+        </div>
+    </div>
+
+    <div class="timer-container hide" id="timer-container">20</div>
+
+    <div class="game-container" id="game-container">
+        
+        <div id="start-logos" class="floating-container">
+            <img src="media/logo.png" alt="Logo" class="main-logo-float">
+        </div>
+
+        <h1 class="glow-text">BİLİM & SANAT</h1>
+        <p class="subtitle">Büyük Yarışma</p>
+        
+        <div class="score-container">
+            <span class="score-label">Puan:</span>
+            <span class="score-value" id="score">0</span>
+        </div>
+        
+        <div class="progress-bar hide" id="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        
+        <div id="quiz-area" class="hide">
+            <div class="image-container">
+                <img id="sign-image" src="" alt="Soru Görseli" class="media-element">
+            </div>
+            
+            <p id="question-text">Soru yükleniyor...</p>
+            <ul id="choices-list"></ul> 
+            <div id="feedback" class="feedback"></div>
+            <button id="next-btn" class="hide btn-primary">Sonraki Soru →</button>
+        </div>
+
+        <button id="start-btn" class="btn-primary">YARIŞMAYI BAŞLAT</button>
+   
+        <div class="progress-map hide" id="progress-map">
+            <div class="progress-dots" id="progress-dots"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© <span id="current-year"></span> Bilim ve Sanat Gecesi</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
