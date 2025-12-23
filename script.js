@@ -1,14 +1,16 @@
 window.addEventListener('load', () => {
     const loader = document.getElementById('loading-screen');
-    setTimeout(() => {
-        loader.classList.add('fade-out-screen');
-    }, 2500);
+    if (loader) {
+        setTimeout(() => {
+            loader.classList.add('fade-out-screen');
+        }, 2500);
+    }
 });
 
 const GAME_CONFIG = {
-    totalQuestions: 15,    
-    defaultTime: 20,       
-    milestones: [5, 10]    
+    totalQuestions: 15,
+    defaultTime: 20,
+    milestones: [5, 10, 15]
 };
 
 const questionPool = [
@@ -137,6 +139,7 @@ const questionPool = [
 let gameQuestions = [];
 let currentQuestionIndex = 0;
 let score = 0;
+let correctAnswersCount = 0;
 let timerInterval;
 let timeLeft;
 let audioContext;
@@ -160,6 +163,21 @@ const milestoneText = document.getElementById('milestone-text');
 const footer = document.querySelector('.footer');
 const startLogos = document.getElementById('start-logos');
 
+const resultArea = document.getElementById('result-area');
+const finalScoreText = document.getElementById('final-score-text');
+const playerNameInput = document.getElementById('player-name');
+const saveScoreBtn = document.getElementById('save-score-btn');
+const highscoreInputSection = document.getElementById('highscore-input-section');
+const leaderboardSection = document.getElementById('leaderboard-section');
+const leaderboardList = document.getElementById('leaderboard-list');
+const downloadDataBtn = document.getElementById('download-data-btn');
+
+// Ödül Sistemi Değişkenleri
+const rewardContainer = document.getElementById('reward-container');
+const rewardTitle = document.getElementById('reward-title');
+const correctCountText = document.getElementById('correct-count-text');
+const rewardIcon = document.getElementById('reward-icon');
+
 function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -171,42 +189,56 @@ function initAudioContext() {
 
 function playSound(type) {
     if (!audioContext) return;
+    const now = audioContext.currentTime;
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
+
     osc.connect(gain);
     gain.connect(audioContext.destination);
 
     if (type === 'correct') {
-        osc.frequency.setValueAtTime(440, audioContext.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.1);
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.1, audioContext.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-        osc.start();
-        osc.stop(audioContext.currentTime + 0.3);
-
+        osc.type = 'square';
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.frequency.setValueAtTime(988, now);
+        osc.frequency.setValueAtTime(1319, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.3);
     } else if (type === 'wrong') {
-        osc.frequency.value = 150; 
-        osc.type = 'sine'; 
-        gain.gain.setValueAtTime(0.1, audioContext.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-        osc.start();
-        osc.stop(audioContext.currentTime + 0.3);
-
+        osc.type = 'sawtooth';
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(50, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.2);
     } else if (type === 'milestone') {
-        osc.frequency.setValueAtTime(220, audioContext.currentTime);
-        osc.frequency.linearRampToValueAtTime(440, audioContext.currentTime + 1);
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.15, audioContext.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, audioContext.currentTime + 1.5);
-        osc.start();
-        osc.stop(audioContext.currentTime + 1.5);
+        osc.type = 'square';
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0.1, now + 0.5);
+        gain.gain.linearRampToValueAtTime(0, now + 1.0);
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.linearRampToValueAtTime(880, now + 0.2);
+        osc.frequency.linearRampToValueAtTime(1760, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 1.0);
+    } else if (type === 'timeout') {
+        osc.type = 'square';
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+        osc.frequency.setValueAtTime(493, now);       
+        osc.frequency.setValueAtTime(349, now + 0.1); 
+        osc.frequency.setValueAtTime(349, now + 0.2); 
+        osc.frequency.setValueAtTime(329, now + 0.3); 
+        osc.frequency.setValueAtTime(293, now + 0.4); 
+        osc.frequency.setValueAtTime(261, now + 0.5); 
+        osc.start(now);
+        osc.stop(now + 0.8);
     }
 }
 
 startBtn.addEventListener('click', () => {
     initAudioContext();
-    
     const shuffled = [...questionPool].sort(() => 0.5 - Math.random());
     gameQuestions = shuffled.slice(0, GAME_CONFIG.totalQuestions);
 
@@ -217,9 +249,12 @@ startBtn.addEventListener('click', () => {
     progressMap.classList.remove('hide');
     timerContainer.classList.remove('hide');
     
+    if (resultArea) resultArea.classList.add('hide');
+
     if (footer) footer.style.transform = "translateY(100%)";
 
     score = 0;
+    correctAnswersCount = 0;
     currentQuestionIndex = 0;
     scoreSpan.textContent = score;
 
@@ -238,7 +273,6 @@ function initProgressMap() {
 
 function updateProgressMap(status) {
     const dots = document.querySelectorAll('.progress-dot');
-    
     if (status === 'correct') {
         dots[currentQuestionIndex].classList.add('completed');
     } else if (status === 'wrong') {
@@ -253,7 +287,6 @@ function updateProgressMap(status) {
 
 function loadQuestion() {
     resetState();
-    
     if (currentQuestionIndex >= gameQuestions.length) {
         endGame();
         return;
@@ -262,7 +295,7 @@ function loadQuestion() {
     const currentQ = gameQuestions[currentQuestionIndex];
     questionText.textContent = currentQ.question;
     signImage.src = currentQ.image || 'https://via.placeholder.com/500x300?text=Resim+Yok';
-    
+
     currentQ.choices.forEach(choice => {
         const li = document.createElement('li');
         li.textContent = choice;
@@ -280,12 +313,14 @@ function resetState() {
     choicesList.innerHTML = '';
     feedbackDiv.textContent = '';
     feedbackDiv.className = 'feedback';
-    nextBtn.classList.add('hide');
+    
+    if (nextBtn) nextBtn.classList.add('hide');
+    
     timerContainer.classList.remove('warning');
 }
 
 function selectAnswer(e) {
-    if (document.querySelector('#choices-list .correct') || 
+    if (document.querySelector('#choices-list .correct') ||
         document.querySelector('#choices-list .incorrect')) return;
 
     stopTimer();
@@ -295,7 +330,8 @@ function selectAnswer(e) {
 
     if (isCorrect) {
         selectedBtn.classList.add('correct');
-        score += 10;
+        score += 100;
+        correctAnswersCount++;
         scoreSpan.textContent = score;
         playSound('correct');
         updateProgressMap('correct');
@@ -304,7 +340,6 @@ function selectAnswer(e) {
         selectedBtn.classList.add('incorrect');
         playSound('wrong');
         updateProgressMap('wrong');
-        
         Array.from(choicesList.children).forEach(btn => {
             if (btn.textContent === currentQ.correctAnswer) {
                 btn.classList.add('correct');
@@ -329,10 +364,10 @@ function handleTransition(isSuccess) {
 
 function triggerMilestone(level) {
     playSound('milestone');
-    milestoneImg.src = "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=500&q=80"; 
+    milestoneImg.src = "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=500&q=80";
     milestoneText.textContent = `${level}. SORU BARAJI GEÇİLDİ!`;
     milestoneOverlay.classList.remove('hide');
-    
+
     setTimeout(() => {
         milestoneOverlay.classList.add('hide');
         nextQuestion();
@@ -347,20 +382,20 @@ function nextQuestion() {
 function startTimer(seconds) {
     timeLeft = seconds;
     timerContainer.textContent = timeLeft;
-    
     timerInterval = setInterval(() => {
         timeLeft--;
         timerContainer.textContent = timeLeft;
-        
         if (timeLeft <= 5) {
             timerContainer.classList.add('warning');
         }
-        
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
             const currentQ = gameQuestions[currentQuestionIndex];
+            
+            playSound('timeout');
             updateProgressMap('wrong');
-             Array.from(choicesList.children).forEach(btn => {
+            
+            Array.from(choicesList.children).forEach(btn => {
                 if (btn.textContent === currentQ.correctAnswer) {
                     btn.classList.add('correct');
                 }
@@ -375,23 +410,123 @@ function stopTimer() {
 }
 
 function endGame() {
+
+console.log("Oyun Bitti. Toplam Doğru Sayısı:", correctAnswersCount);
+
     stopTimer();
-    let endMessage = "Tebrikler!";
-    if (score >= 120) endMessage = "MÜKEMMEL SONUÇ!";
-    else if (score >= 80) endMessage = "GAYET İYİ!";
+    quizArea.classList.add('hide');
+    progressBar.classList.add('hide');
+    progressMap.classList.add('hide');
+    timerContainer.classList.add('hide');
+
+    resultArea.classList.remove('hide');
+    finalScoreText.textContent = score;
+
+    let rewardName = "";
+    let rewardClass = "";
+    let icon = "";
+    let hasReward = false;
+
+    if (correctAnswersCount >= 13) {
+        rewardName = "BİLİM DERGİSİ";
+        rewardClass = "reward-gold";
+        icon = "📚";
+        hasReward = true;
+    } else if (correctAnswersCount >= 11) {
+        rewardName = "ANAHTARLIK";
+        rewardClass = "reward-silver";
+        icon = "🔑";
+        hasReward = true;
+    } else if (correctAnswersCount >= 7) {
+        rewardName = "CAPS (ŞAPKA)";
+        rewardClass = "reward-bronze";
+        icon = "🧢";
+        hasReward = true;
+    }
+
+    correctCountText.textContent = `Toplam ${correctAnswersCount} doğru cevap verdiniz.`;
     
-    quizArea.innerHTML = `
-        <div style="animation: zoomIn 0.5s ease-out">
-            <h2 style="color:var(--primary-color); font-size: 2em; margin-bottom:10px;">YARIŞMA BİTTİ</h2>
-            <p style="font-size:1.5em; color:white; margin-bottom:20px;">${endMessage}</p>
-            <div style="font-size:3em; color:var(--primary-color); font-weight:bold; margin-bottom:30px; text-shadow: 0 0 20px rgba(0,255,65,0.5)">
-                ${score} PUAN
-            </div>
-            <button class="btn-primary" onclick="location.reload()">BAŞA DÖN</button>
-        </div>
-    `;
-    progressFill.style.width = '100%';
+    rewardTitle.classList.remove('reward-gold', 'reward-silver', 'reward-bronze');
+    rewardContainer.style.borderColor = ""; 
+
+    if (hasReward) {
+        rewardContainer.classList.remove('hide');
+        rewardTitle.textContent = rewardName;
+        rewardTitle.classList.add(rewardClass);
+        rewardIcon.textContent = icon;
+        
+        if(correctAnswersCount >= 9) rewardContainer.style.borderColor = "#FFD700";
+        else if(correctAnswersCount >= 7) rewardContainer.style.borderColor = "#C0C0C0";
+        else rewardContainer.style.borderColor = "#CD7F32";
+
+    } else {
+        rewardContainer.classList.add('hide'); 
+    }
+
+    highscoreInputSection.classList.remove('hide');
+    leaderboardSection.classList.add('hide');
+    playerNameInput.value = '';
+
     playSound('milestone');
+    
+    if (typeof confetti === 'function' && hasReward) {
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#00ff41', '#ffffff', '#FFD700']
+        });
+    }
 }
 
-document.getElementById('current-year').textContent = new Date().getFullYear();
+if(saveScoreBtn) {
+    saveScoreBtn.addEventListener('click', () => {
+        const name = playerNameInput.value.toUpperCase();
+        if (name.length < 2) {
+            alert("Lütfen en az 2 harfli bir isim gir.");
+            return;
+        }
+
+        const highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+        const newScore = { name: name, score: score, date: new Date().toLocaleDateString() };
+
+        highScores.push(newScore);
+        highScores.sort((a, b) => b.score - a.score);
+        highScores.splice(5);
+
+        localStorage.setItem('highScores', JSON.stringify(highScores));
+
+        highscoreInputSection.classList.add('hide');
+        leaderboardSection.classList.remove('hide');
+        updateLeaderboardView(highScores);
+    });
+}
+
+function updateLeaderboardView(scores) {
+    leaderboardList.innerHTML = scores.map(s => 
+        `<li><span>${s.name}</span> <span>${s.score}</span></li>`
+    ).join('');
+}
+
+if(downloadDataBtn) {
+    downloadDataBtn.addEventListener('click', () => {
+        const data = localStorage.getItem('highScores');
+        if(!data) {
+            alert("Henüz kayıtlı veri yok.");
+            return;
+        }
+        const blob = new Blob([data], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "liderlik_tablosu.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+}
+
+const yearSpan = document.getElementById('current-year');
+if (yearSpan) {
+    yearSpan.textContent = new Date().getFullYear();
+}

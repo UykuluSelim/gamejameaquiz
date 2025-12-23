@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bilim ve Sanat Yarışması</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
     <div id="loading-screen">
         <div class="logo-container">
-            <img src="media/logo.png" alt="Logo" class="main-logo-splash">
+            <img src="media/logo.png" alt="Logo" class="main-logo-splash" onerror="this.style.display='none'">
         </div>
         <div class="loading-bar-container">
             <div class="loading-bar"></div>
@@ -30,7 +31,7 @@
     <div class="game-container" id="game-container">
         
         <div id="start-logos" class="floating-container">
-            <img src="media/logo.png" alt="Logo" class="main-logo-float">
+            <img src="media/logo.png" alt="Logo" class="main-logo-float" onerror="this.style.display='none'">
         </div>
 
         <h1 class="glow-text">BİLİM & SANAT</h1>
@@ -53,7 +54,43 @@
             <p id="question-text">Soru yükleniyor...</p>
             <ul id="choices-list"></ul> 
             <div id="feedback" class="feedback"></div>
+            
             <button id="next-btn" class="hide btn-primary">Sonraki Soru →</button>
+        </div>
+
+        <div id="result-area" class="hide">
+            <h2 class="result-title">OYUN BİTTİ</h2>
+            <div class="final-score-box">
+                TOPLAM PUAN: <span id="final-score-text">0</span>
+            </div>
+
+            <div id="reward-container" class="reward-box hide">
+                <p class="reward-subtitle">KAZANDIĞINIZ ÖDÜL:</p>
+                <h3 id="reward-title" class="reward-name">ÖDÜL YOK</h3>
+                <div id="reward-icon" class="reward-icon">🎁</div> 
+                <p id="correct-count-text" style="font-size: 0.8em; color: #888; margin-top:5px;"></p>
+            </div>
+
+            <div id="highscore-input-section">
+                <p>Liderlik tablosuna adını yazdır!</p>
+                <div class="input-group">
+                    <input type="text" id="player-name" maxlength="3" placeholder="ADIN (3 Harf)">
+                    <button id="save-score-btn" class="btn-primary small-btn">KAYDET</button>
+                </div>
+            </div>
+
+            <div id="leaderboard-section" class="hide">
+                <h3>🏆 EN İYİ 5 🏆</h3>
+                <ul id="leaderboard-list"></ul>
+                <button id="download-data-btn" class="download-link">💾 Listeyi İndir (JSON)</button>
+            </div>
+
+            <div class="qr-section">
+                <p style="font-size: 0.8em; color: #888; margin-bottom: 5px;">TOPLULUĞA KATIL</p>
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://evrimagaci.org&color=00ff41&bgcolor=050505" alt="QR" class="qr-code-img">
+            </div>
+
+            <button class="btn-primary" onclick="location.reload()" style="margin-top: 20px;">TEKRAR OYNA</button>
         </div>
 
         <button id="start-btn" class="btn-primary">YARIŞMAYI BAŞLAT</button>
